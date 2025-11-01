@@ -213,7 +213,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     const firebaseConfig = {
   apiKey: "AIzaSyAX1AA7tTnlnApVZlnnuMkB42k3W5IlwoM",
@@ -224,35 +224,40 @@
   appId: "1:902613920907:web:0e73bd5def3cf4396a788e"
 };
 
-    // Init
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
-    // Sign-in anonymously so writes are authenticated (enable 'Anonymous' in Firebase console)
     signInAnonymously(auth).catch(console.error);
 
-    /**
-     * Guarda una cotización en Firestore. Recibe un objeto 'payload' con los datos
-     * y agrega metadatos (fecha servidor, userAgent y url).
-     */
-    async function saveCotizacion(payload) { 
-      try { 
-        const col = collection(db, "cotizaciones");
-        const toSave = Object.assign({ 
+    // Genera un folio legible: SAN-YYYYMMDD-XXXX (base36)
+    function makeFolio(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const da = String(d.getDate()).padStart(2,'0');
+      const rand = (Math.floor((Date.now()%1e7))).toString(36).toUpperCase().slice(-4);
+      return `SAN-${y}${m}${da}-${rand}`;
+    }
+
+    async function saveCotizacion(payload) {
+      try {
+        const folio = payload.folio || (window.currentFolio || makeFolio());
+        window.currentFolio = folio; // mantenerlo en memoria para el PDF
+        const toSave = Object.assign({
+          folio,
           createdAt: serverTimestamp(),
           origin: location.href,
           ua: navigator.userAgent
         }, payload);
-        await addDoc(col, toSave);
-        console.log("[Firebase] Cotización guardada");
-      } catch (err) { 
-        console.error("[Firebase] Error guardando la cotización:", err);
+        await addDoc(collection(db, "cotizaciones"), toSave);
+        console.log("[Firebase] Cotización guardada con folio:", folio);
+        return folio;
+      } catch (e) {
+        console.error("[Firebase] Error guardando", e);
       }
     }
-
-    // Expone la función global para que app.js pueda llamarla
     window.saveCotizacion = saveCotizacion;
+    window.makeFolio = makeFolio;
   </script>
 
   <script src="app.js"></script>

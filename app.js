@@ -123,14 +123,11 @@ function recalc(){
 }
 
 
-// --- Recolecta el estado actual del cotizador para registrar en Firestore ---
 function getCotizacionPayload(){
-  const $ = (sel)=>document.querySelector(sel);
-
-  const totalEl = document.querySelector('#totalFinal');
+  const totalEl = document.querySelector('#total');
   const total = totalEl ? Number(totalEl.textContent.replace(/[^0-9.]/g,'')) : 0;
 
-  const meds = Array.from(document.querySelectorAll('#tablaMed tbody tr')).map(tr=>{
+  const meds = Array.from(document.querySelectorAll('#tablaMedicamentos tbody tr')).map(tr=>{
     const tds = tr.querySelectorAll('td');
     return {
       nombre: tds[0]?.textContent?.trim() || "",
@@ -141,7 +138,7 @@ function getCotizacionPayload(){
     };
   });
 
-  const servs = Array.from(document.querySelectorAll('#tablaServ tbody tr')).map(tr=>{
+  const servs = Array.from(document.querySelectorAll('#tablaServicios tbody tr')).map(tr=>{
     const tds = tr.querySelectorAll('td');
     return {
       servicio: tds[0]?.textContent?.trim() || "",
@@ -152,7 +149,8 @@ function getCotizacionPayload(){
     };
   });
 
-  const payload = {
+  return {
+    folio: (window.currentFolio || (window.makeFolio ? window.makeFolio() : "")),
     fechaEmision: document.querySelector('#fechaEmision')?.value || "",
     fechaValidez: document.querySelector('#fechaValidez')?.value || "",
     realizadoPor: document.querySelector('#realizadoPor')?.value || "",
@@ -169,14 +167,14 @@ function getCotizacionPayload(){
     servicios: servs,
     total: total
   };
-  return payload;
 }
 
 
 function toPDF(){
+  try{ if(!window.currentFolio && window.makeFolio){ window.currentFolio = window.makeFolio(); } }catch(e){}
   try{ if(window.saveCotizacion){ window.saveCotizacion(getCotizacionPayload()); } }catch(e){ console.warn('No se pudo guardar en Firebase', e);}
   const el = document.getElementById('cotizador');
-  const opt = { margin: 0.5, filename: 'Cotizacion_Sanare.pdf',
+  const opt = { margin: 0.5, filename: (window.currentFolio ? ("Cotizacion-" + window.currentFolio + ".pdf") : "cotizacion.pdf"),
     image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2},
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'} };
   html2pdf().set(opt).from(el).toPdf().get('pdf').then(function(pdf) {
