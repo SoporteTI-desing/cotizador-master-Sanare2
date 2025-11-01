@@ -171,6 +171,17 @@ function getCotizacionPayload(){
 
 
 function toPDF(){
+
+  // --- Folio + nombre de archivo ---
+  try{
+    if (!window.currentFolio && window.makeFolio) window.currentFolio = window.makeFolio();
+  }catch(_){}
+  const __folio = window.currentFolio || "FOLIO";
+  const __pac   = (document.querySelector('#paciente')?.value || 'Paciente').trim();
+  const __fecha = (document.querySelector('#fechaEmision')?.value || new Date().toISOString().slice(0,10));
+  const __safe = s => s.normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^\w-]+/g,'_').slice(0,60);
+  const __pdfName = `Sanare-${__safe(__pac)}-${__fecha}-${__folio}.pdf`;
+
   try{ if(!window.currentFolio && window.makeFolio){ window.currentFolio = window.makeFolio(); } }catch(e){}
   try{ if(window.saveCotizacion){ window.saveCotizacion(getCotizacionPayload()); } }catch(e){ console.warn('No se pudo guardar en Firebase', e);}
   const el = document.getElementById('cotizador');
@@ -190,7 +201,17 @@ function exportarPDF() {
   const paciente = document.getElementById('paciente')?.value || 'Cotizacion';
   const fecha = new Date().toISOString().split('T')[0];
   const nombreArchivo = paciente + "_" + fecha + ".pdf";
-  html2pdf().set({ filename: nombreArchivo }).from(element).save();
+  html2pdf().set({ filename: nombreArchivo }).from(element).toPdf().get('pdf').then(pdf => {
+  const total = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    pdf.setPage(i);
+    pdf.setFont('helvetica','normal');
+    pdf.setFontSize(8);
+    const w = pdf.internal.pageSize.getWidth();
+    const h = pdf.internal.pageSize.getHeight();
+    pdf.text(`Folio: ${__folio}`, w - 10, h - 6, { align: 'right' });
+  }
+}).save(__pdfName);
 }
 
 const selServicio2=document.getElementById('selServicio');
