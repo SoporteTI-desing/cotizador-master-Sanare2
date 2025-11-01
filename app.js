@@ -122,7 +122,59 @@ function recalc(){
   $('#total').textContent = fmt(total);
 }
 
+
+// --- Recolecta el estado actual del cotizador para registrar en Firestore ---
+function getCotizacionPayload(){
+  const $ = (sel)=>document.querySelector(sel);
+
+  const totalEl = document.querySelector('#totalFinal');
+  const total = totalEl ? Number(totalEl.textContent.replace(/[^0-9.]/g,'')) : 0;
+
+  const meds = Array.from(document.querySelectorAll('#tablaMed tbody tr')).map(tr=>{
+    const tds = tr.querySelectorAll('td');
+    return {
+      nombre: tds[0]?.textContent?.trim() || "",
+      codigo: tds[1]?.textContent?.trim() || "",
+      cantidad: Number(tds[2]?.textContent?.replace(/[^0-9.]/g,'')) || 0,
+      precioUnit: Number(tds[3]?.textContent?.replace(/[^0-9.]/g,'')) || 0,
+      subtotal: Number(tds[4]?.textContent?.replace(/[^0-9.]/g,'')) || 0
+    };
+  });
+
+  const servs = Array.from(document.querySelectorAll('#tablaServ tbody tr')).map(tr=>{
+    const tds = tr.querySelectorAll('td');
+    return {
+      servicio: tds[0]?.textContent?.trim() || "",
+      cantidad: Number(tds[1]?.textContent?.replace(/[^0-9.]/g,'')) || 0,
+      precioUnit: Number(tds[2]?.textContent?.replace(/[^0-9.]/g,'')) || 0,
+      descuento: Number(tds[3]?.textContent?.replace(/[^0-9.]/g,'')) || 0,
+      total: Number(tds[4]?.textContent?.replace(/[^0-9.]/g,'')) || 0
+    };
+  });
+
+  const payload = {
+    fechaEmision: document.querySelector('#fechaEmision')?.value || "",
+    fechaValidez: document.querySelector('#fechaValidez')?.value || "",
+    realizadoPor: document.querySelector('#realizadoPor')?.value || "",
+    paciente: document.querySelector('#paciente')?.value || "",
+    medico: document.querySelector('#medico')?.value || "",
+    aseguradora: document.querySelector('#aseguradora')?.value || "",
+    dx: document.querySelector('#dx')?.value || "",
+    esquema: document.querySelector('#esquema')?.value || "",
+    kam: document.querySelector('#kam')?.value || "",
+    fechaProgramacion: document.querySelector('#fechaProg')?.value || "",
+    direccion: document.querySelector('#direccion')?.value || "",
+    telefono: document.querySelector('#telefono')?.textContent?.trim() || "",
+    medicamentos: meds,
+    servicios: servs,
+    total: total
+  };
+  return payload;
+}
+
+
 function toPDF(){
+  try{ if(window.saveCotizacion){ window.saveCotizacion(getCotizacionPayload()); } }catch(e){ console.warn('No se pudo guardar en Firebase', e);}
   const el = document.getElementById('cotizador');
   const opt = { margin: 0.5, filename: 'Cotizacion_Sanare.pdf',
     image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2},
