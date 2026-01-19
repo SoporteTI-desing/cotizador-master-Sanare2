@@ -20,6 +20,21 @@ th,td{border:1px solid #eadfd9;padding:8px;text-align:center}
 .totales .grid>div{background:#fff7f3;border:1px solid #eadfd9;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center}
 .totales .total{grid-column:3/4;background:#e9d9d2}
 
+/* Ajuste fino: el texto largo de IVA puede romperse y descentrar la cifra */
+.totales .grid .ivaBox span{
+  /* Reducimos un poco para que quepa en una sola linea y no empuje el numero */
+  font-size:10px;
+  line-height:1.1;
+  white-space:nowrap;
+  flex:1;
+  min-width:0;
+}
+
+.totales .grid .ivaBox strong{
+  /* Ajuste leve para que el numero quede visualmente como los demas */
+  font-size:15px;
+}
+
 #buscarMed { flex:1; padding:8px; border:1px solid #d8cdc7; border-radius:8px; }
 #ordenMed { padding:8px; border:1px solid #d8cdc7; border-radius:8px; }
 

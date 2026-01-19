@@ -149,7 +149,7 @@
     <section>
       <h2>Medicamentos</h2>
       <div class="fila">
-        <input type="text" id="buscarMed" placeholder="Buscar medicamento o código..." />
+        <input type="text" id="buscarMed" placeholder="Buscar medicamento o código" />
         <select id="ordenMed">
           <option value="nombre">Ordenar por: A–Z</option>
           <option value="precio">Ordenar por: Precio (desc)</option>
@@ -190,7 +190,7 @@
     <section class="totales">
       <div class="grid">
         <div><span>Subtotal</span><strong id="subtotal">$ 0.00</strong></div>
-        <div><span>IVA sobre Servicios (16%)</span><strong id="iva">$ 0.00</strong></div>
+        <div class="ivaBox"><span>IVA sobre Servicios (16%)</span><strong id="iva">$ 0.00</strong></div>
         <div class="total"><span>TOTAL</span><strong id="total">$ 0.00</strong></div>
       </div>
       
@@ -271,47 +271,151 @@
     const btn = document.getElementById("btnPDF");
     if (!btn) return;
 
+    function filenameForPdf() {
+      let paciente = document.getElementById("paciente")?.value || "Paciente";
+      let fecha = document.getElementById("fechaEmision")?.value || new Date().toISOString().split("T")[0];
+      paciente = paciente.replace(/[^a-z0-9]/gi, "_");
+      fecha = fecha.replace(/[^0-9\-]/g, "_");
+      return `Sanare_${paciente}_${fecha}.pdf`;
+    }
+
+    function replaceControlWithStatic(el, doc, multiline = false) {
+      if (!el) return;
+      let val = "";
+      if (el.tagName === "SELECT") {
+        val = el.options[el.selectedIndex]?.text || el.value || "";
+      } else {
+        val = el.value || "";
+      }
+      const div = doc.createElement("div");
+      div.className = multiline ? "pdf-static multiline" : "pdf-static";
+      div.textContent = val;
+      div.style.width = "100%";
+      el.parentNode.replaceChild(div, el);
+    }
+
     btn.addEventListener("click", function() {
-      const { jsPDF } = window.jspdf;
-      html2canvas(document.getElementById("cotizador"), { 
-        scale: 2, 
-        useCORS: true,
-        onclone: (clonedDoc) => {
-          clonedDoc.querySelectorAll(
-            '#buscarMed, #ordenMed, #selMedicamento, #cantMed, #selServicio, #cantServ, #descServ, #addMed, #addServ, .btn-eliminar, #btnPDF, table button'
-          ).forEach(el => el.style.display = 'none');
-        }
-      }).then(function(canvas) {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
+      const element = document.getElementById("cotizador");
+      if (!element || !window.html2pdf) {
+        alert("No se pudo generar el PDF. Verifica tu conexión o recarga la página.");
+        return;
+      }
 
-        let imgWidth = pageWidth;
-        let imgHeight = (canvas.height * imgWidth) / canvas.width;
-        if (imgHeight > pageHeight) {
-          const ratio = pageHeight / imgHeight;
-          imgWidth *= ratio;
-          imgHeight *= ratio;
-        }
+      const ww = (element.scrollWidth || 980) + 120;
+      const wh = (element.scrollHeight || 1600) + 120;
 
-        const x = (pageWidth - imgWidth) / 2;
-        pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: filenameForPdf(),
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: ww,
+          windowHeight: wh,
+          onclone: (clonedDoc) => {
+            // Modo PDF (solo afecta el clon)
+            clonedDoc.body.classList.add("pdf-export");
+            clonedDoc.body.style.paddingLeft = "12px";
+            clonedDoc.body.style.paddingRight = "12px";
 
-        // Datos dinámicos
-        let paciente = document.getElementById("paciente").value || "Paciente";
-        let fecha = document.getElementById("fechaEmision").value || new Date().toISOString().split("T")[0];
+            // Estilos solo para PDF (evita recortes de letras en el borde)
+            const style = clonedDoc.createElement("style");
+            style.textContent = `
+              /* Ajustes SOLO para exportación a PDF (no afecta la vista normal) */
+              .pdf-export{ font-size:11px !important; }
+              .pdf-export main{ box-shadow:none !important; }
 
-        paciente = paciente.replace(/[^a-z0-9]/gi, "_");
-        fecha = fecha.replace(/[^0-9\-]/g, "_");
+              /* Compactar para que TODO quepa en 1 hoja A4 */
+              .pdf-export #cotizador{ padding:14px !important; margin:0 !important; }
+              .pdf-export .header{ gap:12px !important; padding-bottom:8px !important; margin-bottom:10px !important; }
+              .pdf-export .logo{ height:60px !important; }
+              .pdf-export .empresa h1{ font-size:19px !important; margin:2px 0 6px 0 !important; }
+              .pdf-export .datos{ gap:8px !important; margin:6px 0 12px !important; }
 
-        let nombreArchivo = `Sanare_${paciente}_${fecha}.pdf`;
-        pdf.save(nombreArchivo);
-      });
+              .pdf-export .pdf-static{ padding:7px !important; border:1px solid #d8cdc7; border-radius:10px; background:#fffaf8; min-height:30px !important; display:flex; align-items:center; font-size:11px !important; color:#2d2a29; }
+              .pdf-export .pdf-static.multiline{ align-items:flex-start; white-space:pre-wrap; }
+
+              .pdf-export h1, .pdf-export h2, .pdf-export label{ padding-left:4px !important; }
+              .pdf-export label{ font-size:11px !important; }
+              .pdf-export h2{ margin:10px 0 6px !important; font-size:17px !important; }
+
+              .pdf-export table{ page-break-inside:avoid; }
+              .pdf-export th, .pdf-export td{ padding:6px !important; font-size:10px !important; }
+
+              .pdf-export .totales .grid{ gap:10px !important; margin-top:10px !important; }
+              .pdf-export .totales .grid>div{ padding:10px !important; }
+              /* Igualar tamaños de cifras en Subtotal / IVA / Total (solo PDF) */
+              .pdf-export .totales .grid strong{ font-size:13px !important; }
+              .pdf-export .totales .grid .ivaBox strong{ font-size:13px !important; }
+
+              /* Disclaimer: distribuir mejor el texto y evitar que la última línea se vea "salida" */
+              .pdf-export .disclaimer{
+                margin:8px 0 !important;
+                font-size:9px !important;
+                line-height:1.2 !important;
+                max-width:100% !important;
+                padding:0 6px !important;
+                text-align:justify !important;
+                text-justify:inter-word;
+                text-align-last:center !important;
+                overflow-wrap:anywhere;
+                word-break:normal;
+                hyphens:auto;
+              }
+              .pdf-export .qr-en-contenido{ width:85px !important; margin:6px 0 0 auto !important; }
+            `;
+            clonedDoc.head.appendChild(style);
+
+            // Ocultar filas de captura (medicamentos/servicios) para que no aparezcan en el PDF
+            clonedDoc.querySelectorAll('.fila').forEach(f => { f.style.display = 'none'; });
+
+            // Ocultar controles interactivos / botones
+            clonedDoc.querySelectorAll(
+              '#buscarMed, #ordenMed, #selMedicamento, #cantMed, #selServicio, #honorarioInput, #cantServ, #descServ, #addMed, #addServ, .btn-eliminar, #btnPDF, table button'
+            ).forEach(el => el.style.display = 'none');
+
+            // Ocultar el texto "Descuento (%)" del bloque de captura (cuadro rojo)
+            clonedDoc.querySelectorAll('label').forEach(lab => {
+              const t = (lab.textContent || '').trim().toLowerCase();
+              if (t === 'descuento (%)' || t === 'descuento(%)') {
+                const fila = lab.closest('.fila');
+                if (fila) lab.style.display = 'none';
+              }
+            });
+
+            // Convertir a texto estatico los campos del cuadro superior (amarillo)
+            const ids = [
+              'direccion','fechaEmision','fechaValidez','realizadoPor',
+              'paciente','medico','aseguradora','dx','esquema','kam','fecha'
+            ];
+            ids.forEach(id => {
+              const el = clonedDoc.getElementById(id);
+              if (!el) return;
+              if (el.tagName === 'TEXTAREA') {
+                replaceControlWithStatic(el, clonedDoc, true);
+              } else {
+                replaceControlWithStatic(el, clonedDoc, false);
+              }
+            });
+
+            // Evita recortes por overflow en el clon
+            const main = clonedDoc.getElementById('cotizador');
+            if (main) {
+              main.style.overflow = 'visible';
+            }
+          }
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      };
+
+      window.html2pdf().set(opt).from(element).save();
     });
   });
-  </script>
-
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   var direccion = document.getElementById("direccion");
