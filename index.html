@@ -198,7 +198,7 @@
   La presente cotización es válida por 15 días naturales e incluye únicamente los conceptos señalados; 
   cualquier servicio adicional será cotizado por separado. Para pacientes que no cuenten con aseguradora, se requiere un anticipo del 50% del importe total del tratamiento para su programación, y el pago restante deberá realizarse al momento del ingreso. 
   En pacientes con aseguradora, será indispensable presentar su carta de autorización vigente. 
-  En caso de cancelación o reprogramación, se solicita con al menos 24 horas de anticipación previas a la aplicación del tratamiento, 
+  En caso de cancelación o reprogramación, se solicita avisar con al menos 24 horas de anticipación previas a la aplicación del tratamiento, 
   de lo contrario, podrían generarse cargos correspondientes al medicamento y a los servicios asociados; 
   La presente cotización está sujeta a cambios si el médico tratante así lo indica.
 </p>
@@ -373,19 +373,23 @@
               .pdf-export .totales .grid strong{ font-size:13px !important; }
               .pdf-export .totales .grid .ivaBox strong{ font-size:13px !important; }
 
-              /* Disclaimer: distribuir mejor el texto y evitar que la última línea se vea "salida" */
+              /* Disclaimer: evitar letras amontonadas y lograr saltos más limpios en PDF */
               .pdf-export .disclaimer{
-                margin:8px 0 !important;
-                font-size:9px !important;
-                line-height:1.2 !important;
-                max-width:100% !important;
-                padding:0 6px !important;
-                text-align:justify !important;
-                text-justify:inter-word;
-                text-align-last:center !important;
-                overflow-wrap:anywhere;
-                word-break:normal;
-                hyphens:auto;
+                margin:10px auto 4px auto !important;
+                width:98% !important;
+                max-width:98% !important;
+                padding:0 4px !important;
+                font-size:8.6px !important;
+                line-height:1.45 !important;
+                text-align:left !important;
+                text-align-last:auto !important;
+                letter-spacing:0 !important;
+                word-spacing:0 !important;
+                white-space:normal !important;
+                overflow-wrap:break-word !important;
+                word-break:normal !important;
+                hyphens:none !important;
+                box-sizing:border-box !important;
               }
               .pdf-export .qr-en-contenido{ width:85px !important; margin:6px 0 0 auto !important; }
             `;
