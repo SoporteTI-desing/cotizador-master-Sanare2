@@ -61,7 +61,6 @@ function init(){
   $('#ordenMed').addEventListener('change', renderMedicamentos);
   $('#addMed').addEventListener('click', addMed);
   $('#addServ').addEventListener('click', addServ);
-  $('#btnPDF').addEventListener('click', toPDF);
   $('#selServicio').addEventListener('change', e=>{
     const s = JSON.parse(e.target.value);
     if((s.servicio||'').toUpperCase().includes('INSUMOS Y SERVICIO DE INFUSIÓN')){

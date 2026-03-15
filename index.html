@@ -227,7 +227,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    signInAnonymously(auth).catch(console.error);
+    const authReady = signInAnonymously(auth).catch((e) => {
+      console.error("[Firebase] Error en autenticación anónima", e);
+      throw e;
+    });
 
     // Genera un folio legible: SAN-YYYYMMDD-XXXX (base36)
     function makeFolio(){
@@ -241,6 +244,7 @@
 
     async function saveCotizacion(payload) {
       try {
+        await authReady;
         const folio = payload.folio || (window.currentFolio || makeFolio());
         window.currentFolio = folio; // mantenerlo en memoria para el PDF
         const toSave = Object.assign({
@@ -251,9 +255,10 @@
         }, payload);
         await addDoc(collection(db, "cotizaciones"), toSave);
         console.log("[Firebase] Cotización guardada con folio:", folio);
-        return folio;
+        return { ok: true, folio };
       } catch (e) {
         console.error("[Firebase] Error guardando", e);
+        return { ok: false, error: e };
       }
     }
     window.saveCotizacion = saveCotizacion;
@@ -294,11 +299,27 @@
       el.parentNode.replaceChild(div, el);
     }
 
-    btn.addEventListener("click", function() {
+    btn.addEventListener("click", async function() {
       const element = document.getElementById("cotizador");
       if (!element || !window.html2pdf) {
         alert("No se pudo generar el PDF. Verifica tu conexión o recarga la página.");
         return;
+      }
+
+      if (window.saveCotizacion && window.getCotizacionPayload) {
+        btn.disabled = true;
+        const prevText = btn.textContent;
+        btn.textContent = "Guardando...";
+        try {
+          const result = await window.saveCotizacion(window.getCotizacionPayload());
+          if (!result?.ok) {
+            alert("La cotización no se guardó en Firebase. Revisa la consola para ver el error exacto.");
+            return;
+          }
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prevText;
+        }
       }
 
       const ww = (element.scrollWidth || 980) + 120;
